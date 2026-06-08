@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blockchain Sendiri | Buatan HP Android</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { chain: '#4F46E5' } } } }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-6 max-w-lg">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-chain/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <i class="fa fa-link text-chain text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Blockchain Sendiri</h1>
+            <p class="text-gray-500 text-sm">Dibuat pakai HP Android + Acode</p>
+        </div>
+
+        <!-- Form Tambah Data -->
+        <div class="bg-white rounded-3xl shadow-xl p-5 mb-6">
+            <label class="block text-gray-700 font-medium mb-2 text-sm">Masukkan Data / Transaksi</label>
+            <textarea id="inputData" rows="3" placeholder="Contoh: Kirim 0.5 ETH ke Bapak Budi..." class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-chain/20 focus:border-chain outline-none"></textarea>
+            <button id="btnTambah" class="w-full bg-chain hover:bg-chain/90 text-white font-semibold py-3.5 rounded-xl mt-4 transition-all">
+                <i class="fa fa-plus-circle mr-2"></i> Tambah ke Blockchain
+            </button>
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mb-6 text-sm text-center"></div>
+
+        <!-- Daftar Blok -->
+        <h3 class="font-bold text-lg mb-4 text-gray-700">📦 Daftar Blok (Rantai)</h3>
+        <div id="daftarBlok" class="space-y-4"></div>
+
+        <!-- Cek Keaslian -->
+        <button id="btnCek" class="w-full mt-8 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3.5 rounded-xl">
+            <i class="fa fa-shield-check mr-2"></i> CEK KEASLIAN BLOCKCHAIN
+        </button>
+
+        <p class="text-center text-xs text-gray-400 mt-6">© 2026 - Buatan sendiri, modal HP Android</p>
+    </div>
+
+    <script>
+        // ⚙️ INTI SISTEM BLOCKCHAIN ⚙️
+        class Blok {
+            constructor(waktu, data, hashSebelumnya = '') {
+                this.waktu = waktu;
+                this.data = data;
+                this.hashSebelumnya = hashSebelumnya;
+                this.hash = ''; // Kunci blok ini
+                this.nonce = 0; // Buat keamanan (bukti kerja)
+            }
+
+            // Hitung kunci unik blok ini
+            hitungHash() {
+                return CryptoJS.SHA256(this.hashSebelumnya + this.waktu + JSON.stringify(this.data) + this.nonce).toString();
+            }
+
+            // Sistem Tambang / Keamanan (biar susah diubah)
+            tambangBlok(kesulitan) {
+                while(this.hash.substring(0, kesulitan) !== Array(kesulitan+1).join("0")) {
+                    this.nonce++;
+                    this.hash = this.hitungHash();
+                }
+            }
+        }
+
+        class RantaiBlockchain {
+            constructor() {
+                this.daftarBlok = [this.buatBlokAwal()]; // Blok pertama
+                this.kesulitan = 3; // Semakin besar semakin aman & lambat
+            }
+
+            // Blok pertama (induk)
+            buatBlokAwal() {
+                return new Blok("08/06/2026", "BLOK AWAL - PUSAT SISTEM", "0");
+            }
+
+            ambilBlokTerakhir() {
+                return this.daftarBlok[this.daftarBlok.length - 1];
+            }
+
+            tambahBlok(blokBaru) {
+                blokBaru.hashSebelumnya = this.ambilBlokTerakhir().hash;
+                blokBaru.tambangBlok(this.kesulitan);
+                this.daftarBlok.push(blokBaru);
+            }
+
+            // Cek: ada yang diubah?
+            cekValid() {
+                for(let i=1; i<this.daftarBlok.length; i++) {
+                    const skrg = this.daftarBlok[i];
+                    const sebelum = this.daftarBlok[i-1];
+                    // Cek kunci rusak?
+                    if(skrg.hash !== skrg.hitungHash()) return false;
+                    // Cek putus rantai?
+                    if(skrg.hashSebelumnya !== sebelum.hash) return false;
+                }
+                return true;
+            }
+        }
+
+        // 🚀 JALANKAN SISTEM
+        const myChain = new RantaiBlockchain();
+        const daftarEl = document.getElementById('daftarBlok');
+        const statusEl = document.getElementById('status');
+
+        // Tampilkan semua blok ke layar
+        function tampilkanSemua() {
+            daftarEl.innerHTML = '';
+            myChain.daftarBlok.forEach((blok, indeks) => {
+                const blokEl = document.createElement('div');
+                blokEl.className = 'bg-white rounded-2xl shadow-md p-4 border-l-4 border-chain';
+                blokEl.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-bold text-chain">Blok #${indeks}</span>
+                        <span class="text-xs text-gray-500">${blok.waktu}</span>
+                    </div>
+                    <p class="text-sm text-gray-700 mb-2"><strong>Data:</strong> ${blok.data}</p>
+                    <p class="text-xs text-gray-500 mb-1"><strong>Kunci Sebelum:</strong> ${blok.hashSebelumnya.substring(0,16)}...</p>
+                    <p class="text-xs font-mono bg-gray-100 p-1 rounded"><strong>Kunci Ini:</strong> ${blok.hash.substring(0,16)}...</p>
+                `;
+                daftarEl.appendChild(blokEl);
+            });
+        }
+
+        // Tambah data baru
+        document.getElementById('btnTambah').addEventListener('click', () => {
+            const isi = document.getElementById('inputData').value.trim();
+            if(!isi) return alert("Isi dulu datanya bro!");
+            
+            statusEl.classList.remove('hidden');
+            statusEl.textContent = "⏳ Sedang mengamankan blok...";
+
+            setTimeout(() => {
+                const waktu = new Date().toLocaleString('id-ID');
+                myChain.tambahBlok(new Blok(waktu, isi));
+                tampilkanSemua();
+                statusEl.textContent = "✅ Berhasil ditambahkan ke Blockchain!";
+                document.getElementById('inputData').value = '';
+
+                setTimeout(() => statusEl.classList.add('hidden'), 3000);
+            }, 800);
+        });
+
+        // Cek keaslian
+        document.getElementById('btnCek').addEventListener('click', () => {
+            if(myChain.cekValid()) {
+                alert("✅ AMAN! Blockchain ASLI, tidak ada yang diubah/dirusak.");
+            } else {
+                alert("❌ BAHAYA! Ada data yang DIUBAH atau RUSAK!");
+            }
+        });
+
+        // Tampilan awal
+        tampilkanSemua();
+    </script>
+</body>
+</html>
